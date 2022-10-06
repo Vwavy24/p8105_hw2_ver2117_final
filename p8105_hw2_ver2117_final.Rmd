@@ -1,0 +1,151 @@
+---
+title: "p8105_hw2_ver2117_final"
+author: "Varvy Rousseau"
+date: "2022-10-06"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Loading relevant packages
+```{r}
+library(tidyverse)
+library(readxl)
+options(tibble.print_min = 3)
+```
+
+
+##Problem 2 - Mr.Trash Wheel Dataset
+## Working with new data set; is not working either
+```{r}
+mr_trash = read_excel("~/Desktop/p8105_hw2_ver2117/Trash Wheel Collection Data_new.xlsx", range = cell_cols("A:N")) %>%
+  janitor::clean_names() %>%
+  drop_na(dumpster)%>%
+  mutate(dumpster = as.character(dumpster))%>%
+  mutate(sports_balls = as.integer(sports_balls),id = "Mr_trash", year = as.integer(year))
+
+```
+
+#Cleaning for Professor Trash wheel
+## Working with new dataset; is not working either
+```{r}
+prof_trash = read_excel("~/Desktop/p8105_hw2_ver2117/Trash Wheel Collection Data_new.xlsx", sheet = "Professor Trash Wheel", range = cell_cols("A:M")) %>%
+  janitor::clean_names() %>%
+  drop_na(dumpster) %>%
+  mutate(dumpster = as.character(dumpster)) %>%
+  mutate(id = "Prof")
+```
+
+#Combining the two datasets to stack on top of eachother
+```{r}
+trash_data=bind_rows(mr_trash, prof_trash)
+trash_data
+```
+
+#Computing the total weight of trash collected by Professor Trash Wheel
+```{r}
+prof_trash_sums = sum(pull(prof_trash,weight_tons))
+prof_trash_sums
+```
+
+#computing dimensons for the Professor trash wheel dataset
+```{r}
+nrow(prof_trash)
+ncol(prof_trash)
+
+```
+
+
+#Computing the total number of sports balls collected by Mr.Trash Wheel in 2020
+```{r}
+x = mr_trash %>% filter(year == 2020) %>% select(sports_balls)
+
+tns = sum(x)
+tns
+```
+
+#Number of observations and number of variables
+```{r}
+nrow(trash_data)
+ncol(trash_data)
+```
+
+After tidying and merging the Mr Trash and Professor trash dataset, the number of observations(641) is `r nrow(trash_data)`.Some key variables include weight(in tons), the volume(cubic yards), cigarette butts, glass bottles, grocery bags, dumpster label, the date(myd), plastic bottles, polystyrene, chip bags, sports, and the homes powered.The total number of sports balls in 2020 collected by Mr. Trash Wheel(856) is `r tns`.  The number of columns or categories in the dataset(15) is `r ncol(trash_data)`.  The other dataset that was tidyed was the Professor Trash Wheel which is the second excel sheet. The total weight of trash collected by Professor Trash Wheel (190.12) is `rsum(pull(prof_trash,weight_tons))`. The number of observations in the Professor Trash Wheel(94) dataset is `rnrow(prof_trash)`. The number of columns(14) for this dataset is `r ncol(prof_trash) `. Some key variables were weight( in tons), plastic bottles, polystyrene, cigarette butts, glass bottles, grocery bags, chip bags.
+
+
+#Problem 3
+##Cleaning/editing pols_months dataset
+```{r}
+poll_month = read_csv("~/Desktop/p8105_hw2_ver2117/pols-month.csv") %>%
+  janitor::clean_names() %>%
+  separate(col = mon, into = c("year", "month", "day"), convert = TRUE) %>%
+  mutate(month = month.name[as.numeric(month)],
+         president = ifelse(prez_gop == 0 & prez_dem == 1, "dem",
+              ifelse(prez_gop == 1 & prez_dem == 0, "gop", NA))) %>%
+           select(-day,-prez_dem, -prez_gop)
+ncol(poll_month)
+```
+
+
+##Cleaning snp.csv file
+#installing lubridate package
+```{r}
+library(lubridate)
+```
+
+```{r}
+snp_data = read_csv("/Users/varvyrousseau/Desktop/p8105_hw2_ver2117/snp.csv") %>%
+  janitor::clean_names() %>%
+  mutate(date = parse_date_time2(date,"mdy", cutoff_2000 = 49)) %>%
+  separate(col = date, into = c("year", "month", "day"), convert = TRUE) %>%
+  mutate(month = month.name[as.numeric(month)]) %>%
+  select(year, month, close )%>%
+  arrange(year, month)
+
+ncol(snp_data)
+nrow(snp_data)
+
+range(pull(snp_data, year))
+```
+
+#Tidying the unemployment data
+```{r}
+unemploy_df = 
+  read_csv("/Users/varvyrousseau/Desktop/p8105_hw2_ver2117/unemployment.csv") %>%
+  janitor::clean_names() %>%
+  pivot_longer(
+   jan:dec,
+   names_to = "month",
+   values_to = "percentage of unemployment") %>%
+  mutate(
+    month = recode(month, jan = "January", feb = "February", mar = "March", apr = "April", may = "May", jun = "June", jul = "July", aug = "August", sep = "September", oct = "October", nov = "November", dec = "December" ))
+view(unemploy_df)
+
+range(pull(unemploy_df, year))
+```
+
+#Merging snp into pols and merging unemployment into the result
+
+```{r}
+firstmer_df = left_join(poll_month, snp_data, by = c("year","month"))
+
+whol_df = left_join(firstmer_df, unemploy_df, by = c("year", "month"))
+view(whol_df)
+
+```
+
+#Finding the range 
+```{r}
+  range(pull(whol_df, year))
+```
+
+#Finding the observations 
+```{r}
+
+ncol(whol_df)
+nrow(whol_df)
+```
+
+In problem 3, three datasets were cleaned and then were merged together into one dataset.  The first dataset that cleaned was pols-month which contained data on the number and types of national politicans.  The number of observations (822)in this dataset is `r nrow(poll_month)`. The number of columns (9) in this dataset is `r col(poll_month)`.  Some of the variables in this in dataset are republican presidental candidates,republican representatives, republican senators,republican govenors deomocratic presidental candidates, democratic govenors, democratic senators, democratic representatives. The second dataset that was cleaned was snp which contatined the closing values of the S & P stocks.  The number of observations (787) in this dataset is `r nrow(snp_data)`. The number of columns (3) in this dataset is `r nrow(snp_data)`. The key variables in this dataset are year, month and close.  The range of years(1950 - 2015) is `r range(pull(snp_data, year))`. The unemployment dataset was also cleaned containing the percentages of unemployment in months of the associated year. Variables included the month and the year. The range of years for this dataset (1948 - 2015) is `r range(pull(unemploy_df, year))`.  All of these datasets were then merged into one. The range of years ( 1947 - 2015) for this whole dataset is `r range(pull(whol_df, year))`. The number of columns(11) in this dataset is `r ncol(whol_df)`. The number of observations (822) is `r `nrow(whol_df)`. 
